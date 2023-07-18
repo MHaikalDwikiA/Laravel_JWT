@@ -26,6 +26,8 @@ Route::group(['middleware' => 'api', 'prefix' => 'auth'], function ($router) {
     Route::post('me', [AuthController::class, 'me']);
 });
 
-Route::apiResource('article', ArticleController::class);
+Route::apiResource('articles', ArticleController::class);
 
 Route::post('article-comment/{id}', [ArticleCommentController::class, 'store']);
+Route::put('article-comment/{id}', [ArticleCommentController::class, 'update']);
+Route::delete('article-comment/{id}', [ArticleCommentController::class, 'destroy']);

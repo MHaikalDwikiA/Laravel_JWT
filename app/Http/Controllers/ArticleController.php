@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\ArticleShow;
 use App\Models\Article;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -13,7 +14,7 @@ class ArticleController extends Controller
      */
     public function index()
     {
-        $articles = Article::latest()->get();
+        $articles = Article::latest()->paginate(2);
         return response()->json([
             'success' => true,
             'message' => "Article berhasil ditampilkan",
@@ -26,12 +27,12 @@ class ArticleController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make(request()->all(),[
+        $validator = Validator::make(request()->all(), [
             'title' => 'required',
             'body' => 'required'
         ]);
 
-        if($validator->fails()) {
+        if ($validator->fails()) {
             return response()->json($validator->messages(), 422);
         }
 
@@ -52,13 +53,13 @@ class ArticleController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show($id)
     {
-        $articles = Article::find($id);
-        return response()->with('comments')->json([
+        $articles = Article::with('comments')->find($id);
+        return response()->json([
             'success' => true,
             'message' => "Article berhasil ditampilkan",
-            'data' => $articles,
+            'data' => new ArticleShow($articles),
         ]);
     }
 
@@ -67,12 +68,12 @@ class ArticleController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        $validator = Validator::make(request()->all(),[
+        $validator = Validator::make(request()->all(), [
             'title' => 'required',
             'body' => 'required'
         ]);
 
-        if($validator->fails()) {
+        if ($validator->fails()) {
             return response()->json($validator->messages(), 422);
         }
 
@@ -80,8 +81,15 @@ class ArticleController extends Controller
         //     'title' => $request->title,
         //     'body' => $request->body,
         // ]);
+        $user = auth()->user();
 
         $article = Article::find($id);
+        if ($user->id != $article->user_id) {
+            return response()->json([
+                'success' => false,
+                'message' => "Kamu bukan pemilik article",
+            ],403);
+        }
         $article->title = $request->title;
         $article->body = $request->body;
         $article->save();
@@ -96,15 +104,38 @@ class ArticleController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
-    { 
+    public function destroy($id)
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => "Unauthenticated.",
+            ], 401);
+        }
+
         $article = Article::find($id);
+        if (!$article) {
+            return response()->json([
+                'success' => false,
+                'message' => "Article not found.",
+            ], 404);
+        }
+
+        if ($user->id != $article->user_id) {
+            return response()->json([
+                'success' => false,
+                'message' => "You are not the owner of this article.",
+            ], 403);
+        }
+
         $article->delete();
 
         return response()->json([
             'success' => true,
-            'message' => "Article berhasil dihapus",
+            'message' => "Article successfully deleted.",
             'data' => $article,
         ]);
+
     }
 }

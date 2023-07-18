@@ -10,8 +10,13 @@ class Article extends Model
     use HasFactory;
     protected $guarded = [];
 
-    public function  Comments()
+    public function comments()
     {
         return $this->hasMany(ArticleComment::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }
